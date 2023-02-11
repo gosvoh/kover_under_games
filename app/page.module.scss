@@ -1,0 +1,90 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4rem 6rem;
+  min-height: 100vh;
+}
+
+.center {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding-inline: 4rem;
+  width: 100%;
+  gap: 2rem;
+}
+
+.title {
+  font-size: 3rem;
+}
+
+.gameSection {
+  display: flex;
+  flex-direction: column;
+  min-width: 30%;
+  gap: 0.5rem;
+  z-index: 2;
+
+  .actions,
+  .roll {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-block: 1rem;
+    gap: 1rem;
+
+    > * {
+      border-radius: 0.5rem;
+      padding: 0.5rem 1rem;
+    }
+  }
+
+  .roll .modId {
+    background-color: white;
+    color: black;
+    text-align: center;
+    flex: 1;
+    user-select: none;
+  }
+
+  button {
+    color: white;
+    font-weight: bold;
+    border: none;
+    flex: 2;
+    background-color: hsl(240, 100%, 50%);
+
+    &:hover {
+      cursor: pointer;
+      background-color: hsl(240, 100%, 40%);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+
+      &:hover {
+        background-color: hsl(240, 100%, 50%);
+      }
+    }
+  }
+
+  .boobs {
+    color: red;
+  }
+
+  .music {
+    user-select: none;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    align-items: center;
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
+}
