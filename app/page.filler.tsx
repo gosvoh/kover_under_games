@@ -12,17 +12,19 @@ import Switch from "react-switch";
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
 function useAudio(url: string): [boolean, () => void] {
-  const [audio] = useState(new Audio(url));
+  const [audio, setAudio] = useState<HTMLAudioElement>(null as any);
   const [playing, setPlaying] = useState(false);
 
   const toggle = () => setPlaying(!playing);
 
   useEffect(() => {
+    let audio = new Audio(url);
     audio.loop = true;
-  }, [audio]);
+    setAudio(audio);
+  }, []);
 
   useEffect(() => {
-    playing ? audio.play() : audio.pause();
+    playing ? audio?.play() : audio?.pause();
   }, [playing]);
 
   return [playing, toggle];
