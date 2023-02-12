@@ -1,8 +1,16 @@
 .footer {
   font-size: 0.75rem;
-  opacity: 0.5;
+
+  > * {
+    display: inline;
+    opacity: 0.5;
+  }
 
   a {
-    text-decoration: underline;
+    color: cornflowerblue;
+
+    &:hover {
+      opacity: 0.75;
+    }
   }
 }
