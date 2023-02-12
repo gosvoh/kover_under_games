@@ -11,11 +11,15 @@ import Switch from "react-switch";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
-function useAudio(url: string): [boolean, () => void] {
+function useAudio(
+  url: string
+): [boolean, () => void, number, (volume: number) => void] {
   const [audio, setAudio] = useState<HTMLAudioElement>(null as any);
   const [playing, setPlaying] = useState(false);
+  const [audioVolume, setAudioVolume] = useState(0.5);
 
   const toggle = () => setPlaying(!playing);
+  const setVolume = (volume: number) => setAudioVolume(volume);
 
   useEffect(() => {
     let audio = new Audio(url);
@@ -24,16 +28,36 @@ function useAudio(url: string): [boolean, () => void] {
   }, []);
 
   useEffect(() => {
-    playing ? audio?.play() : audio?.pause();
+    if (!audio) return;
+    audio.volume = audioVolume;
+  }, [audioVolume]);
+
+  useEffect(() => {
+    if (!audio) return;
+    if (playing) audio.play();
+    else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
   }, [playing]);
 
-  return [playing, toggle];
+  return [playing, toggle, audioVolume, setVolume];
 }
 
 export default function Home({ games }: { games: any }) {
   const [selectedGame, setSelectedGame] = useState<any>(null);
   const [modInfo, setModInfo] = useState<any>({ mod_id: 0 });
-  const [playing, toggle] = useAudio("/Wolfie.mp3");
+  const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
+
+  useEffect(() => {
+    let storedVolume = localStorage.getItem("volume");
+    if (storedVolume) {
+      try {
+        setVolume(Number(storedVolume));
+        return;
+      } catch (e) {}
+    }
+  }, [setVolume]);
 
   useEffect(() => {
     let game = localStorage.getItem("selectedGame");
@@ -66,6 +90,13 @@ export default function Home({ games }: { games: any }) {
       `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfo.mod_id}`,
       "_blank"
     );
+  }
+
+  function handleVolume(event: any) {
+    let volume = Number(event.target.value) / 100;
+    localStorage.setItem("volume", volume.toString());
+
+    setVolume(volume);
   }
 
   return (
@@ -103,6 +134,15 @@ export default function Home({ games }: { games: any }) {
               uncheckedIcon={false}
             />
             <span>Музыка</span>
+            <input
+              type={"range"}
+              value={volume * 100}
+              min={0}
+              max={100}
+              step={5}
+              onChange={handleVolume}
+            />
+            <span>{Math.round(volume * 100)}</span>
           </label>
         </div>
       </div>
