@@ -48,6 +48,19 @@ export default function Home({ games }: { games: any }) {
   const [selectedGame, setSelectedGame] = useState<any>(null);
   const [modInfo, setModInfo] = useState<any>({ mod_id: 0 });
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [lastModId, setLastModId] = useState(0);
+  const [isFetching, setIsFetching] = useState(false);
+  const [modId, setModId] = useState(modInfo.mod_id);
+
+  let interval: any = null;
+
+  useEffect(() => {
+    if (errorMessage === "") return;
+    setTimeout(() => {
+      setErrorMessage("");
+    }, 5000);
+  }, [errorMessage]);
 
   useEffect(() => {
     let storedVolume = localStorage.getItem("volume");
@@ -77,7 +90,35 @@ export default function Home({ games }: { games: any }) {
   useEffect(() => {
     if (!selectedGame) return;
     localStorage.setItem("selectedGame", JSON.stringify(selectedGame));
+
+    fetch("/api/getLastModId", {
+      cache: "no-cache",
+      headers: {
+        game: JSON.stringify(selectedGame),
+      },
+    }).then(async (response) => {
+      if (response.status !== 200) {
+        setErrorMessage(response.statusText);
+        return;
+      }
+
+      let modId = await response.json();
+      setLastModId(modId);
+    });
   }, [selectedGame]);
+
+  useEffect(() => {
+    if (!isFetching) {
+      setModId(modInfo.mod_id);
+      return;
+    }
+
+    interval = setInterval(() => {
+      setModId(Math.floor(Math.random() * lastModId));
+    }, 10);
+
+    return () => clearInterval(interval);
+  }, [isFetching, modInfo, lastModId]);
 
   function handleCopy() {
     navigator.clipboard.writeText(
@@ -111,18 +152,34 @@ export default function Home({ games }: { games: any }) {
             setSelectedGame={setSelectedGame}
           />
           <p>Модов на Nexusmods - {selectedGame?.modsCount}</p>
+          <p>ID последнего загруженного мода - {lastModId}</p>
           <div className={styles.roll}>
-            <div className={styles.modId}>{modInfo.mod_id}</div>
-            <Btn selectedGame={selectedGame} setModInfo={setModInfo} />
+            <div className={styles.modId}>{modId}</div>
+            <Btn
+              selectedGame={selectedGame}
+              setModInfo={setModInfo}
+              setErrorMessage={setErrorMessage}
+              setIsFetching={setIsFetching}
+            />
           </div>
-          <p className={modInfo.contains_adult_content && styles.boobs}>
+          <p
+            hidden={errorMessage !== ""}
+            className={modInfo.contains_adult_content && styles.boobs}
+          >
             Бубы? {modInfo.contains_adult_content ? "Возможно" : "Вроде нет"}
           </p>
+          <p hidden={errorMessage === ""}>Ошибка - {errorMessage}</p>
           <div className={styles.actions}>
-            <button disabled={modInfo.mod_id === 0} onClick={handleCopy}>
+            <button
+              disabled={modInfo.mod_id === 0 || isFetching}
+              onClick={handleCopy}
+            >
               Скопировать ссылку на мод
             </button>
-            <button disabled={modInfo.mod_id === 0} onClick={handleNewTab}>
+            <button
+              disabled={modInfo.mod_id === 0 || isFetching}
+              onClick={handleNewTab}
+            >
               Открыть в новой вкладке
             </button>
           </div>
