@@ -4,11 +4,13 @@ export default function Btn({
   selectedGame,
   setModInfo,
   setErrorMessage,
+  isFetching,
   setIsFetching,
 }: {
   selectedGame: string;
   setModInfo: Dispatch<any>;
   setErrorMessage: Dispatch<any>;
+  isFetching: boolean;
   setIsFetching: Dispatch<any>;
 }) {
   async function rollModId() {
@@ -31,5 +33,9 @@ export default function Btn({
     setModInfo(modInfo);
   }
 
-  return <button onClick={rollModId}>Роллим!</button>;
+  return (
+    <button disabled={isFetching} onClick={rollModId}>
+      Роллим!
+    </button>
+  );
 }

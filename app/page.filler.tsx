@@ -159,6 +159,7 @@ export default function Home({ games }: { games: any }) {
               selectedGame={selectedGame}
               setModInfo={setModInfo}
               setErrorMessage={setErrorMessage}
+              isFetching={isFetching}
               setIsFetching={setIsFetching}
             />
           </div>
