@@ -1,5 +1,6 @@
 .footer {
   font-size: 0.75rem;
+  font-weight: bold;
 
   > * {
     display: inline;
@@ -12,5 +13,11 @@
     &:hover {
       opacity: 0.75;
     }
+  }
+}
+
+@media screen and (orientation: portrait) {
+  .footer {
+    font-size: 0.7rem;
   }
 }

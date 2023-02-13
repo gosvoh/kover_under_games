@@ -14,6 +14,7 @@
   align-items: center;
   padding-inline: 4rem;
   width: 100%;
+  gap: 2rem;
 }
 
 .title {
@@ -84,6 +85,25 @@
 
     &:hover {
       cursor: pointer;
+    }
+  }
+}
+
+@media screen and (orientation: portrait) {
+  .main {
+    padding: 2rem 3rem;
+
+    .center {
+      flex-direction: column;
+
+      img {
+        width: auto;
+        height: auto;
+      }
+    }
+
+    .title {
+      font-size: 2rem;
     }
   }
 }
