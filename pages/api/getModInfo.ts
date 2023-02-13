@@ -26,7 +26,7 @@ export default async function handler(
     response = await fetch(
       `https://api.nexusmods.com/v1/games/${game.value}/mods/${rnd}.json`,
       {
-        next: { revalidate: 60 * 60 * 24 },
+        cache: "no-cache",
         headers: {
           apikey: process.env.NEXUSMODS_KEY as string,
         },
