@@ -1,6 +1,6 @@
 {
-  "name": "kover_under_mods",
-  "version": "1.0.0",
+  "name": "kover_under_games",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "next dev",

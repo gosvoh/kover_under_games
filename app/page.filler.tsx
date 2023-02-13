@@ -25,12 +25,12 @@ function useAudio(
     let audio = new Audio(url);
     audio.loop = true;
     setAudio(audio);
-  }, []);
+  }, [url, setAudio]);
 
   useEffect(() => {
     if (!audio) return;
     audio.volume = audioVolume;
-  }, [audioVolume]);
+  }, [audio, audioVolume]);
 
   useEffect(() => {
     if (!audio) return;
@@ -39,7 +39,7 @@ function useAudio(
       audio.pause();
       audio.currentTime = 0;
     }
-  }, [playing]);
+  }, [audio, playing]);
 
   return [playing, toggle, audioVolume, setVolume];
 }
@@ -118,7 +118,7 @@ export default function Home({ games }: { games: any }) {
     }, 10);
 
     return () => clearInterval(interval);
-  }, [isFetching, modInfo, lastModId]);
+  }, [isFetching, modInfo, lastModId, setModId]);
 
   function handleCopy() {
     navigator.clipboard.writeText(
