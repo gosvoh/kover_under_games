@@ -5,6 +5,7 @@
   align-items: center;
   padding: 4rem 6rem;
   min-height: 100vh;
+  gap: 1rem;
 }
 
 .center {
@@ -26,7 +27,10 @@
   flex-direction: column;
   min-width: 30%;
   gap: 0.5rem;
-  z-index: 2;
+
+  p {
+    font-size: min(1rem, 3.5vw);
+  }
 
   .actions,
   .roll {
