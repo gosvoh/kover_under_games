@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
+var randomNumber = require("random-number-csprng-2");
 
 export default async function handler(
   req: NextApiRequest,
@@ -22,7 +23,7 @@ export default async function handler(
   let latest = (await response.json())[0].mod_id;
 
   while (modInfo === null) {
-    let rnd = Math.floor(Math.random() * latest);
+    let rnd = await randomNumber(1, latest);
     response = await fetch(
       `https://api.nexusmods.com/v1/games/${game.value}/mods/${rnd}.json`,
       {
@@ -33,10 +34,7 @@ export default async function handler(
       }
     );
 
-    if (!response.ok) {
-      res.status(response.status).json(response.statusText);
-      return;
-    }
+    if (!response.ok) continue;
 
     let info = await response.json();
     if (info.status !== "published" || info.available !== true) continue;
