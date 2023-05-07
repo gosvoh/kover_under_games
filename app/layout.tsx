@@ -1,5 +1,10 @@
-import Footer from "./footer";
+import { Metadata } from "next";
 import "./globals.scss";
+
+export const metadata: Metadata = {
+  title: "Kover roller",
+  description: "Kover roller во имя всемогущего рандома!",
+};
 
 export default function RootLayout({
   children,
@@ -8,7 +13,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <head />
       <body>{children}</body>
     </html>
   );

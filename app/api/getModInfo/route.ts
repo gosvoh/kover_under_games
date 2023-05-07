@@ -1,11 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextRequest, NextResponse } from "next/server";
+
 var randomNumber = require("random-number-csprng-2");
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  let game = JSON.parse(req.headers.game as string);
+export async function GET(req: NextRequest) {
+  let game = JSON.parse(req.headers.get("game") as string);
   let modInfo = null;
 
   let response = await fetch(
@@ -16,10 +14,8 @@ export default async function handler(
       },
     }
   );
-  if (!response.ok) {
-    res.status(response.status).json(response.statusText);
-    return;
-  }
+  if (!response.ok) return response;
+
   let latest = (await response.json())[0].mod_id;
 
   while (modInfo === null) {
@@ -40,6 +36,5 @@ export default async function handler(
     if (info.status !== "published" || info.available !== true) continue;
     modInfo = info;
   }
-
-  res.status(200).json(modInfo);
+  return NextResponse.json(modInfo);
 }

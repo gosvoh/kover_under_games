@@ -1,13 +1,13 @@
 "use client";
 
-import { Inter } from "@next/font/google";
+import { Inter } from "next/font/google";
 import Footer from "./footer";
 import styles from "./page.module.scss";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import Btn from "@/components/btn";
 import Select from "@/components/select";
 import Switch from "react-switch";
+import { useAsync } from "@react-hookz/web";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -44,23 +44,65 @@ function useAudio(
   return [playing, toggle, audioVolume, setVolume];
 }
 
-export default function Home({ games }: { games: any }) {
-  const [selectedGame, setSelectedGame] = useState<any>(null);
-  const [modInfo, setModInfo] = useState<any>({ mod_id: 0 });
+export default function Home({
+  games,
+}: {
+  games: {
+    value: string;
+    label: string;
+    modsCount: number;
+  }[];
+}) {
+  type ArrayElement<T> = T extends (infer U)[] ? U : null;
+
+  const [selectedGame, setSelectedGame] =
+    useState<ArrayElement<typeof games>>();
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
   const [errorMessage, setErrorMessage] = useState("");
-  const [lastModId, setLastModId] = useState(0);
-  const [isFetching, setIsFetching] = useState(false);
-  const [modId, setModId] = useState(modInfo.mod_id);
+  const [modInfoState, modInfoAction] = useAsync(
+    async (): Promise<{ contains_adult_content?: string; mod_id: number }> => {
+      setErrorMessage("");
+      try {
+        const res = await fetch("/api/getModInfo", {
+          cache: "no-cache",
+          headers: {
+            game: JSON.stringify(selectedGame),
+          },
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        return res.json();
+      } catch (error: any) {
+        console.error(error);
+        setErrorMessage(error.message);
+        throw error;
+      } finally {
+      }
+    },
+    { mod_id: 0 }
+  );
+  const [lastModIdState, lastModIdAction] = useAsync(
+    async (): Promise<number> => {
+      setErrorMessage("");
+      try {
+        const res = await fetch("/api/getLastModId", {
+          cache: "no-cache",
+          headers: {
+            game: JSON.stringify(selectedGame),
+          },
+        });
+        if (!res.ok) throw new Error(res.statusText);
+        return res.json();
+      } catch (error: any) {
+        console.error(error);
+        setErrorMessage(error.message);
+        throw error;
+      }
+    },
+    0
+  );
+  const [modId, setModId] = useState(modInfoState.result?.mod_id);
 
   let interval: any = null;
-
-  useEffect(() => {
-    if (errorMessage === "") return;
-    setTimeout(() => {
-      setErrorMessage("");
-    }, 5000);
-  }, [errorMessage]);
 
   useEffect(() => {
     let storedVolume = localStorage.getItem("volume");
@@ -90,45 +132,34 @@ export default function Home({ games }: { games: any }) {
   useEffect(() => {
     if (!selectedGame) return;
     localStorage.setItem("selectedGame", JSON.stringify(selectedGame));
-
-    fetch("/api/getLastModId", {
-      cache: "no-cache",
-      headers: {
-        game: JSON.stringify(selectedGame),
-      },
-    }).then(async (response) => {
-      if (response.status !== 200) {
-        setErrorMessage(response.statusText);
-        return;
-      }
-
-      let modId = await response.json();
-      setLastModId(modId);
-    });
+    lastModIdAction.reset();
+    lastModIdAction.execute();
   }, [selectedGame]);
 
   useEffect(() => {
-    if (!isFetching) {
-      setModId(modInfo.mod_id);
+    if (modInfoState.status === "not-executed") return;
+
+    if (modInfoState.status === "success") {
+      setModId(modInfoState.result?.mod_id);
       return;
     }
 
     interval = setInterval(() => {
-      setModId(Math.floor(Math.random() * lastModId));
+      setModId(Math.floor(Math.random() * lastModIdState.result));
     }, 10);
 
     return () => clearInterval(interval);
-  }, [isFetching, modInfo, lastModId, setModId]);
+  }, [modInfoState.result, lastModIdState.result, setModId]);
 
   function handleCopy() {
     navigator.clipboard.writeText(
-      `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfo.mod_id}`
+      `https://www.nexusmods.com/${selectedGame?.value}/mods/${modInfoState.result?.mod_id}`
     );
   }
 
   function handleNewTab() {
     window.open(
-      `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfo.mod_id}`,
+      `https://www.nexusmods.com/${selectedGame?.value}/mods/${modInfoState.result?.mod_id}`,
       "_blank"
     );
   }
@@ -152,33 +183,44 @@ export default function Home({ games }: { games: any }) {
             setSelectedGame={setSelectedGame}
           />
           <p>Модов на Nexusmods - {selectedGame?.modsCount}</p>
-          <p>ID последнего загруженного мода - {lastModId}</p>
+          <p>ID последнего загруженного мода - {lastModIdState.result}</p>
           <div className={styles.roll}>
             <div className={styles.modId}>{modId}</div>
-            <Btn
-              selectedGame={selectedGame}
-              setModInfo={setModInfo}
-              setErrorMessage={setErrorMessage}
-              isFetching={isFetching}
-              setIsFetching={setIsFetching}
-            />
+            <button
+              disabled={modInfoState.status === "loading"}
+              onClick={() => {
+                modInfoAction.reset();
+                modInfoAction.execute();
+              }}
+            >
+              Роллим!
+            </button>
           </div>
           <p
             hidden={errorMessage !== ""}
-            className={modInfo.contains_adult_content && styles.boobs}
+            className={
+              modInfoState.result?.contains_adult_content
+                ? styles.error
+                : undefined
+            }
           >
-            Бубы? {modInfo.contains_adult_content ? "Возможно" : "Вроде нет"}
+            Бубы?{" "}
+            {modInfoState.result?.contains_adult_content
+              ? "Возможно"
+              : "Вроде нет"}
           </p>
-          <p hidden={errorMessage === ""}>Ошибка - {errorMessage}</p>
+          <p className={styles.error} hidden={errorMessage === ""}>
+            Ошибка - {errorMessage}
+          </p>
           <div className={styles.actions}>
             <button
-              disabled={modInfo.mod_id === 0 || isFetching}
+              disabled={modInfoState.status !== "success"}
               onClick={handleCopy}
             >
               Скопировать ссылку на мод
             </button>
             <button
-              disabled={modInfo.mod_id === 0 || isFetching}
+              disabled={modInfoState.status !== "success"}
               onClick={handleNewTab}
             >
               Открыть в новой вкладке
