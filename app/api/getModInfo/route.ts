@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 var randomNumber = require("random-number-csprng-2");
 
 export async function GET(req: NextRequest) {
-  let game = JSON.parse(req.headers.get("game") as string);
+  const game = JSON.parse(req.headers.get("game") as string);
+  let boobsOn = req.headers.get("boobs") == "true";
   let modInfo = null;
 
   let response = await fetch(
@@ -34,6 +35,7 @@ export async function GET(req: NextRequest) {
 
     let info = await response.json();
     if (info.status !== "published" || info.available !== true) continue;
+    if (!boobsOn && info.contains_adult_content) continue;
     modInfo = info;
   }
   return NextResponse.json(modInfo);

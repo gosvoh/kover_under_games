@@ -79,18 +79,23 @@
   .error {
     color: red;
   }
+}
 
-  .music {
-    user-select: none;
-    display: flex;
-    flex-direction: row;
-    gap: 1rem;
-    align-items: center;
+.flexRow {
+  user-select: none;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
 
-    &:hover {
-      cursor: pointer;
-    }
-  }
+.flex1 {
+  flex: 1;
+}
+
+.pointer {
+  cursor: pointer;
 }
 
 @media screen and (orientation: portrait) {

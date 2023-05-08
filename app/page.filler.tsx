@@ -1,6 +1,6 @@
 "use client";
 
-import { Inter } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import Footer from "./footer";
 import styles from "./page.module.scss";
 import Image from "next/image";
@@ -9,7 +9,7 @@ import Select from "@/components/select";
 import Switch from "react-switch";
 import { useAsync } from "@react-hookz/web";
 
-const inter = Inter({ subsets: ["latin", "cyrillic"] });
+const font = JetBrains_Mono({ subsets: ["latin", "cyrillic"] });
 
 function useAudio(
   url: string
@@ -59,14 +59,20 @@ export default function Home({
     useState<ArrayElement<typeof games>>();
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
   const [errorMessage, setErrorMessage] = useState("");
+  const [boobs, setBoobs] = useState(false);
   const [modInfoState, modInfoAction] = useAsync(
-    async (): Promise<{ contains_adult_content?: string; mod_id: number }> => {
+    async (): Promise<{
+      contains_adult_content?: string;
+      mod_id: number;
+      category_id?: number;
+    }> => {
       setErrorMessage("");
       try {
         const res = await fetch("/api/getModInfo", {
           cache: "no-cache",
           headers: {
             game: JSON.stringify(selectedGame),
+            boobs: String(boobs),
           },
         });
         if (!res.ok) throw new Error(res.statusText);
@@ -100,6 +106,21 @@ export default function Home({
     },
     0
   );
+  const [gameInfoState, gameInfoAction] = useAsync(async (): Promise<any> => {
+    try {
+      const res = await fetch("/api/getGameInfo", {
+        cache: "no-cache",
+        headers: {
+          game: JSON.stringify(selectedGame),
+        },
+      });
+      if (!res.ok) throw new Error(res.statusText);
+      return res.json();
+    } catch (error: any) {
+      console.error(error);
+      throw error;
+    }
+  });
   const [modId, setModId] = useState(modInfoState.result?.mod_id);
 
   let interval: any = null;
@@ -115,14 +136,25 @@ export default function Home({
   }, [setVolume]);
 
   useEffect(() => {
-    let game = localStorage.getItem("selectedGame");
-    if (game) {
-      try {
-        setSelectedGame(JSON.parse(game));
-        return;
-      } catch (e) {}
-    }
-    let skyrim = games.filter(
+    try {
+      const boobsOn = localStorage.getItem("boobs") as string;
+      setBoobs((val) => (val = boobsOn == "true"));
+    } catch (e) {}
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("boobs", boobs.toString());
+  }, [boobs]);
+
+  useEffect(() => {
+    try {
+      const game = localStorage.getItem("selectedGame") as string;
+      setSelectedGame((val) => (val = JSON.parse(game)));
+    } catch (e) {}
+
+    if (selectedGame) return;
+
+    const skyrim = games.filter(
       (option: any) => option.value === "skyrimspecialedition"
     )[0];
     setSelectedGame(skyrim);
@@ -134,6 +166,9 @@ export default function Home({
     localStorage.setItem("selectedGame", JSON.stringify(selectedGame));
     lastModIdAction.reset();
     lastModIdAction.execute();
+    gameInfoAction.reset();
+    gameInfoAction.execute();
+    modInfoAction.reset();
   }, [selectedGame]);
 
   useEffect(() => {
@@ -172,7 +207,7 @@ export default function Home({
   }
 
   return (
-    <main className={`${styles.main} ${inter.className}`}>
+    <main className={`${styles.main} ${font.className}`}>
       <h1 className={styles.title}>Kover roller</h1>
       <div className={styles.center}>
         <Pepe />
@@ -185,7 +220,11 @@ export default function Home({
           <p>Модов на Nexusmods - {selectedGame?.modsCount}</p>
           <p>ID последнего загруженного мода - {lastModIdState.result}</p>
           <div className={styles.roll}>
-            <div className={styles.modId}>{modId}</div>
+            <div className={styles.modId}>
+              {modInfoState.status === "loading"
+                ? modId
+                : modInfoState.result.mod_id}
+            </div>
             <button
               disabled={modInfoState.status === "loading"}
               onClick={() => {
@@ -196,19 +235,30 @@ export default function Home({
               Роллим!
             </button>
           </div>
-          <p
-            hidden={errorMessage !== ""}
-            className={
-              modInfoState.result?.contains_adult_content
-                ? styles.error
-                : undefined
-            }
-          >
-            Бубы?{" "}
-            {modInfoState.result?.contains_adult_content
-              ? "Возможно"
-              : "Вроде нет"}
-          </p>
+          <div className={styles.flexRow}>
+            <p
+              hidden={errorMessage !== ""}
+              className={
+                modInfoState.result?.contains_adult_content
+                  ? styles.error
+                  : undefined
+              }
+            >
+              Бубы?{" "}
+              {modInfoState.result?.contains_adult_content
+                ? "Возможно"
+                : "Вроде нет"}
+            </p>
+            <label className={styles.flexRow}>
+              <Switch
+                onChange={(val) => setBoobs(val)}
+                checked={boobs}
+                checkedIcon={false}
+                uncheckedIcon={false}
+              />
+              <span className={styles.pointer}>Вкл шанс буб?</span>
+            </label>
+          </div>
           <p className={styles.error} hidden={errorMessage === ""}>
             Ошибка - {errorMessage}
           </p>
@@ -226,14 +276,38 @@ export default function Home({
               Открыть в новой вкладке
             </button>
           </div>
-          <label className={styles.music}>
-            <Switch
-              onChange={toggle}
-              checked={playing}
-              checkedIcon={false}
-              uncheckedIcon={false}
-            />
-            <span>Музыка</span>
+          <p
+            style={{
+              visibility:
+                gameInfoState.status === "success" &&
+                modInfoState.result.category_id
+                  ? "visible"
+                  : "hidden",
+              width: 0,
+              minWidth: "100%",
+            }}
+          >
+            {`Категория: ${
+              (
+                gameInfoState.result?.categories as {
+                  category_id: number;
+                  name: string;
+                }[]
+              )?.find(
+                (val) => val.category_id === modInfoState.result.category_id
+              )?.name ?? "не найдена"
+            }`}
+          </p>
+          <div className={styles.flexRow}>
+            <label className={styles.flexRow}>
+              <Switch
+                onChange={toggle}
+                checked={playing}
+                checkedIcon={false}
+                uncheckedIcon={false}
+              />
+              <span className={styles.pointer}>Музыка</span>
+            </label>
             <input
               type={"range"}
               value={volume * 100}
@@ -241,9 +315,10 @@ export default function Home({
               max={100}
               step={5}
               onChange={handleVolume}
+              className={styles.flex1}
             />
-            <span>{Math.round(volume * 100)}</span>
-          </label>
+            <span>{String(Math.round(volume * 100)).padStart(3, "0")}</span>
+          </div>
         </div>
       </div>
       <Footer />
