@@ -6,7 +6,7 @@ import styles from "./page.module.scss";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Switch from "react-switch";
-import { useAsync } from "@react-hookz/web";
+import { useAsync, useLocalStorageValue } from "@react-hookz/web";
 import { AutoComplete } from "antd";
 
 const font = JetBrains_Mono({ subsets: ["latin", "cyrillic"] });
@@ -55,15 +55,21 @@ export default function Home({
 }) {
   type ArrayElement<T> = T extends (infer U)[] ? U : null;
 
-  const [selectedGame, setSelectedGame] = useState<ArrayElement<typeof games>>({
-    value: "",
-    label: "",
-    modsCount: 0,
+  const boobs = useLocalStorageValue("boobs", {
+    defaultValue: false,
+    // initializeWithValue: true,
+  });
+  const selectedGame = useLocalStorageValue("selectedGame", {
+    defaultValue: { value: "", label: "", modsCount: 0 },
+    // initializeWithValue: true,
+  });
+  const storageVolume = useLocalStorageValue("volume", {
+    defaultValue: 0.5,
+    // initializeWithValue: true,
   });
   const [acValue, setAcValue] = useState("");
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
   const [errorMessage, setErrorMessage] = useState("");
-  const [boobs, setBoobs] = useState(false);
   const [modInfoState, modInfoAction] = useAsync(
     async (): Promise<{
       contains_adult_content?: string;
@@ -73,7 +79,7 @@ export default function Home({
       setErrorMessage("");
       try {
         const res = await fetch(
-          `/api/getModInfo?game=${selectedGame.value}&boobs=${boobs}`,
+          `/api/getModInfo?game=${selectedGame.value?.value}&boobs=${boobs.value}`,
           {
             cache: "no-cache",
           }
@@ -94,7 +100,7 @@ export default function Home({
       setErrorMessage("");
       try {
         const res = await fetch(
-          `/api/getLastModId?game=${selectedGame.value}`,
+          `/api/getLastModId?game=${selectedGame.value?.value}`,
           {
             cache: "no-cache",
           }
@@ -111,9 +117,12 @@ export default function Home({
   );
   const [gameInfoState, gameInfoAction] = useAsync(async (): Promise<any> => {
     try {
-      const res = await fetch(`/api/getGameInfo?game=${selectedGame.value}`, {
-        cache: "no-cache",
-      });
+      const res = await fetch(
+        `/api/getGameInfo?game=${selectedGame.value?.value}`,
+        {
+          cache: "no-cache",
+        }
+      );
       if (!res.ok) throw new Error(res.statusText);
       return res.json();
     } catch (error: any) {
@@ -126,51 +135,34 @@ export default function Home({
   let interval: any = null;
 
   useEffect(() => {
-    let storedVolume = localStorage.getItem("volume");
-    if (storedVolume) {
-      try {
-        setVolume(Number(storedVolume));
-        return;
-      } catch (e) {}
-    }
-  }, [setVolume]);
+    setVolume(storageVolume.value || 0.5);
 
-  useEffect(() => {
-    try {
-      const boobsOn = localStorage.getItem("boobs") as string;
-      setBoobs((val) => (val = boobsOn == "true"));
-    } catch (e) {}
+    if (selectedGame.value && selectedGame.value.value.length !== 0) {
+      setAcValue(selectedGame.value.label);
+      return;
+    }
+
+    const skyrim = games.find(
+      (option: ArrayElement<typeof games>) =>
+        option.value === "skyrimspecialedition"
+    );
+    if (!skyrim) return;
+    setAcValue(skyrim.label);
+    selectedGame.set(skyrim);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("boobs", boobs.toString());
-  }, [boobs]);
-
-  useEffect(() => {
-    try {
-      const game = localStorage.getItem("selectedGame") as string;
-      setSelectedGame((val) => (val = JSON.parse(game)));
-    } catch (e) {}
-
-    if (selectedGame.value.length !== 0) return;
-
-    const skyrim = games.find(
-      (option: any) => option.value === "skyrimspecialedition"
-    );
-    if (!skyrim) return;
-    setSelectedGame(skyrim);
-    setAcValue(skyrim.label);
-    localStorage.setItem("selectedGame", JSON.stringify(skyrim));
-  }, [games, setSelectedGame]);
-
-  useEffect(() => {
-    if (!games.find((option: any) => option.value === selectedGame.value)) {
+    if (
+      !games.find(
+        (option: ArrayElement<typeof games>) =>
+          option.value === selectedGame.value?.value
+      )
+    ) {
       lastModIdAction.reset();
       gameInfoAction.reset();
       modInfoAction.reset();
       return;
     }
-    localStorage.setItem("selectedGame", JSON.stringify(selectedGame));
     lastModIdAction.reset();
     lastModIdAction.execute();
     gameInfoAction.reset();
@@ -195,20 +187,20 @@ export default function Home({
 
   function handleCopy() {
     navigator.clipboard.writeText(
-      `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfoState.result.mod_id}`
+      `https://www.nexusmods.com/${selectedGame.value?.value}/mods/${modInfoState.result.mod_id}`
     );
   }
 
   function handleNewTab() {
     window.open(
-      `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfoState.result.mod_id}`,
+      `https://www.nexusmods.com/${selectedGame.value?.value}/mods/${modInfoState.result.mod_id}`,
       "_blank"
     );
   }
 
   function handleVolume(event: any) {
     let volume = Number(event.target.value) / 100;
-    localStorage.setItem("volume", volume.toString());
+    storageVolume.set(volume);
 
     setVolume(volume);
   }
@@ -230,15 +222,15 @@ export default function Home({
             onChange={(value) => {
               setAcValue(value);
               const game = games.find((game) => game.label === value);
-              if (game) setSelectedGame(game);
-              else setSelectedGame({ label: "", value: "", modsCount: 0 });
+              if (game) selectedGame.set(game);
+              else selectedGame.set({ value: "", label: "", modsCount: 0 });
             }}
             onSelect={(value, option) => {
               setAcValue(option.label);
-              setSelectedGame(option);
+              selectedGame.set(option);
             }}
           />
-          <p>Модов на Nexusmods - {selectedGame.modsCount}</p>
+          <p>Модов на Nexusmods - {selectedGame.value?.modsCount}</p>
           <p>ID последнего загруженного мода - {lastModIdState.result}</p>
           <div className={styles.roll}>
             <div className={styles.modId}>
@@ -249,7 +241,7 @@ export default function Home({
             <button
               disabled={
                 modInfoState.status === "loading" ||
-                !games.find((x) => x.value === selectedGame.value)
+                !games.find((x) => x.value === selectedGame.value?.value)
               }
               onClick={() => {
                 modInfoAction.reset();
@@ -264,19 +256,18 @@ export default function Home({
               hidden={errorMessage !== ""}
               className={
                 modInfoState.result.contains_adult_content
-                  ? styles.error
-                  : undefined
+                  ? [styles.error, styles.blink].join(" ")
+                  : ""
               }
             >
-              Бубы?{" "}
               {modInfoState.result.contains_adult_content
-                ? "Возможно"
-                : "Вроде нет"}
+                ? "Возможно бубы!"
+                : "Это не бубы"}
             </p>
             <label className={styles.flexRow}>
               <Switch
-                onChange={(val) => setBoobs(val)}
-                checked={boobs}
+                onChange={boobs.set}
+                checked={boobs.value || false}
                 checkedIcon={false}
                 uncheckedIcon={false}
               />
