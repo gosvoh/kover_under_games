@@ -57,15 +57,15 @@ export default function Home({
 
   const boobs = useLocalStorageValue("boobs", {
     defaultValue: false,
-    // initializeWithValue: true,
+    initializeWithValue: false,
   });
   const selectedGame = useLocalStorageValue("selectedGame", {
     defaultValue: { value: "", label: "", modsCount: 0 },
-    // initializeWithValue: true,
+    initializeWithValue: false,
   });
   const storageVolume = useLocalStorageValue("volume", {
     defaultValue: 0.5,
-    // initializeWithValue: true,
+    initializeWithValue: false,
   });
   const [acValue, setAcValue] = useState("");
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
