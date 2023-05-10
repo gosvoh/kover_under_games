@@ -5,9 +5,9 @@ import Footer from "./footer";
 import styles from "./page.module.scss";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import Select from "@/components/select";
 import Switch from "react-switch";
 import { useAsync } from "@react-hookz/web";
+import { AutoComplete } from "antd";
 
 const font = JetBrains_Mono({ subsets: ["latin", "cyrillic"] });
 
@@ -55,8 +55,12 @@ export default function Home({
 }) {
   type ArrayElement<T> = T extends (infer U)[] ? U : null;
 
-  const [selectedGame, setSelectedGame] =
-    useState<ArrayElement<typeof games>>();
+  const [selectedGame, setSelectedGame] = useState<ArrayElement<typeof games>>({
+    value: "",
+    label: "",
+    modsCount: 0,
+  });
+  const [acValue, setAcValue] = useState("");
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
   const [errorMessage, setErrorMessage] = useState("");
   const [boobs, setBoobs] = useState(false);
@@ -68,13 +72,12 @@ export default function Home({
     }> => {
       setErrorMessage("");
       try {
-        const res = await fetch("/api/getModInfo", {
-          cache: "no-cache",
-          headers: {
-            game: JSON.stringify(selectedGame),
-            boobs: String(boobs),
-          },
-        });
+        const res = await fetch(
+          `/api/getModInfo?game=${selectedGame.value}&boobs=${boobs}`,
+          {
+            cache: "no-cache",
+          }
+        );
         if (!res.ok) throw new Error(res.statusText);
         return res.json();
       } catch (error: any) {
@@ -90,12 +93,12 @@ export default function Home({
     async (): Promise<number> => {
       setErrorMessage("");
       try {
-        const res = await fetch("/api/getLastModId", {
-          cache: "no-cache",
-          headers: {
-            game: JSON.stringify(selectedGame),
-          },
-        });
+        const res = await fetch(
+          `/api/getLastModId?game=${selectedGame.value}`,
+          {
+            cache: "no-cache",
+          }
+        );
         if (!res.ok) throw new Error(res.statusText);
         return res.json();
       } catch (error: any) {
@@ -108,11 +111,8 @@ export default function Home({
   );
   const [gameInfoState, gameInfoAction] = useAsync(async (): Promise<any> => {
     try {
-      const res = await fetch("/api/getGameInfo", {
+      const res = await fetch(`/api/getGameInfo?game=${selectedGame.value}`, {
         cache: "no-cache",
-        headers: {
-          game: JSON.stringify(selectedGame),
-        },
       });
       if (!res.ok) throw new Error(res.statusText);
       return res.json();
@@ -121,7 +121,7 @@ export default function Home({
       throw error;
     }
   });
-  const [modId, setModId] = useState(modInfoState.result?.mod_id);
+  const [modId, setModId] = useState(modInfoState.result.mod_id);
 
   let interval: any = null;
 
@@ -152,17 +152,24 @@ export default function Home({
       setSelectedGame((val) => (val = JSON.parse(game)));
     } catch (e) {}
 
-    if (selectedGame) return;
+    if (selectedGame.value.length !== 0) return;
 
-    const skyrim = games.filter(
+    const skyrim = games.find(
       (option: any) => option.value === "skyrimspecialedition"
-    )[0];
+    );
+    if (!skyrim) return;
     setSelectedGame(skyrim);
+    setAcValue(skyrim.label);
     localStorage.setItem("selectedGame", JSON.stringify(skyrim));
   }, [games, setSelectedGame]);
 
   useEffect(() => {
-    if (!selectedGame) return;
+    if (!games.find((option: any) => option.value === selectedGame.value)) {
+      lastModIdAction.reset();
+      gameInfoAction.reset();
+      modInfoAction.reset();
+      return;
+    }
     localStorage.setItem("selectedGame", JSON.stringify(selectedGame));
     lastModIdAction.reset();
     lastModIdAction.execute();
@@ -188,13 +195,13 @@ export default function Home({
 
   function handleCopy() {
     navigator.clipboard.writeText(
-      `https://www.nexusmods.com/${selectedGame?.value}/mods/${modInfoState.result?.mod_id}`
+      `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfoState.result.mod_id}`
     );
   }
 
   function handleNewTab() {
     window.open(
-      `https://www.nexusmods.com/${selectedGame?.value}/mods/${modInfoState.result?.mod_id}`,
+      `https://www.nexusmods.com/${selectedGame.value}/mods/${modInfoState.result.mod_id}`,
       "_blank"
     );
   }
@@ -212,12 +219,26 @@ export default function Home({
       <div className={styles.center}>
         <Pepe />
         <div className={styles.gameSection}>
-          <Select
-            games={games}
-            selectedGame={selectedGame}
-            setSelectedGame={setSelectedGame}
+          <AutoComplete
+            options={games}
+            allowClear
+            value={acValue}
+            filterOption={(inputValue, option) =>
+              option!.label.toUpperCase().indexOf(inputValue.toUpperCase()) !==
+              -1
+            }
+            onChange={(value) => {
+              setAcValue(value);
+              const game = games.find((game) => game.label === value);
+              if (game) setSelectedGame(game);
+              else setSelectedGame({ label: "", value: "", modsCount: 0 });
+            }}
+            onSelect={(value, option) => {
+              setAcValue(option.label);
+              setSelectedGame(option);
+            }}
           />
-          <p>Модов на Nexusmods - {selectedGame?.modsCount}</p>
+          <p>Модов на Nexusmods - {selectedGame.modsCount}</p>
           <p>ID последнего загруженного мода - {lastModIdState.result}</p>
           <div className={styles.roll}>
             <div className={styles.modId}>
@@ -226,7 +247,10 @@ export default function Home({
                 : modInfoState.result.mod_id}
             </div>
             <button
-              disabled={modInfoState.status === "loading"}
+              disabled={
+                modInfoState.status === "loading" ||
+                !games.find((x) => x.value === selectedGame.value)
+              }
               onClick={() => {
                 modInfoAction.reset();
                 modInfoAction.execute();
@@ -239,13 +263,13 @@ export default function Home({
             <p
               hidden={errorMessage !== ""}
               className={
-                modInfoState.result?.contains_adult_content
+                modInfoState.result.contains_adult_content
                   ? styles.error
                   : undefined
               }
             >
               Бубы?{" "}
-              {modInfoState.result?.contains_adult_content
+              {modInfoState.result.contains_adult_content
                 ? "Возможно"
                 : "Вроде нет"}
             </p>
@@ -294,7 +318,7 @@ export default function Home({
                   name: string;
                 }[]
               )?.find(
-                (val) => val.category_id === modInfoState.result.category_id
+                (val) => val.category_id === modInfoState.result?.category_id
               )?.name ?? "не найдена"
             }`}
           </p>
