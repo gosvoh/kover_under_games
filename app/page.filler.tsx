@@ -217,7 +217,9 @@ export default function Home({
             value={acValue}
             filterOption={(inputValue, option) =>
               option!.label.toUpperCase().indexOf(inputValue.toUpperCase()) !==
-              -1
+                -1 ||
+              option!.value.toUpperCase().indexOf(inputValue.toUpperCase()) !==
+                -1
             }
             onChange={(value) => {
               setAcValue(value);
