@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import Switch from "react-switch";
 import { useAsync, useLocalStorageValue } from "@react-hookz/web";
-import { AutoComplete } from "antd";
+import { AutoComplete, Spin } from "antd";
 
 const font = Inter({ subsets: ["latin", "cyrillic"] });
 
@@ -57,15 +57,12 @@ export default function Home({
 
   const boobs = useLocalStorageValue("boobs", {
     defaultValue: false,
-    initializeWithValue: false,
   });
   const selectedGame = useLocalStorageValue("selectedGame", {
     defaultValue: { value: "", label: "", modsCount: 0 },
-    initializeWithValue: false,
   });
   const storageVolume = useLocalStorageValue("volume", {
     defaultValue: 0.5,
-    initializeWithValue: false,
   });
   const [acValue, setAcValue] = useState("");
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
@@ -131,14 +128,15 @@ export default function Home({
     }
   });
   const [modId, setModId] = useState(modInfoState.result.mod_id);
+  const [loaded, setLoaded] = useState(false);
 
   let interval: any = null;
 
   useEffect(() => {
     setVolume(storageVolume.value || 0.5);
-
     if (selectedGame.value && selectedGame.value.value.length !== 0) {
       setAcValue(selectedGame.value.label);
+      setLoaded(true);
       return;
     }
 
@@ -149,6 +147,7 @@ export default function Home({
     if (!skyrim) return;
     setAcValue(skyrim.label);
     selectedGame.set(skyrim);
+    setLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -204,6 +203,8 @@ export default function Home({
 
     setVolume(volume);
   }
+
+  if (!loaded) return <Spin />;
 
   return (
     <main className={`${styles.main} ${font.className}`}>
