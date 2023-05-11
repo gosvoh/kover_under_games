@@ -1,6 +1,6 @@
 "use client";
 
-import { JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import Footer from "./footer";
 import styles from "./page.module.scss";
 import Image from "next/image";
@@ -9,7 +9,7 @@ import Switch from "react-switch";
 import { useAsync, useLocalStorageValue } from "@react-hookz/web";
 import { AutoComplete } from "antd";
 
-const font = JetBrains_Mono({ subsets: ["latin", "cyrillic"] });
+const font = Inter({ subsets: ["latin", "cyrillic"] });
 
 function useAudio(
   url: string
