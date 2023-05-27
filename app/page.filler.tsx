@@ -62,7 +62,7 @@ export default function Home({
     defaultValue: { value: "", label: "", modsCount: 0 },
   });
   const storageVolume = useLocalStorageValue("volume", {
-    defaultValue: 0.5,
+    defaultValue: 0.25,
   });
   const [acValue, setAcValue] = useState("");
   const [playing, toggle, volume, setVolume] = useAudio("/Wolfie.mp3");
