@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getGameDomain, getLatestModId, nexusErrorResponse } from "@/utils/nexus";
+import { withRequestLogging } from "@/utils/logger";
 
-export async function GET(req: NextRequest) {
-  let game = req.nextUrl.searchParams.get("game");
-
-  let response = await fetch(
-    `https://api.nexusmods.com/v1/games/${game}/mods/latest_added.json`,
-    {
-      headers: {
-        apikey: process.env.NEXUSMODS_KEY as string,
-      },
-    }
-  );
-
-  if (!response.ok) return response;
-
-  let latest = (await response.json())[0].mod_id;
-  return NextResponse.json(latest);
+async function handleGet(req: NextRequest) {
+  try {
+    return NextResponse.json(await getLatestModId(getGameDomain(req), req.signal));
+  } catch (error) {
+    return nexusErrorResponse(error, req.signal);
+  }
 }
+
+export const GET = withRequestLogging("/api/getLastModId", handleGet);

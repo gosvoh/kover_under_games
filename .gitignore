@@ -20,13 +20,22 @@
 *.pem
 
 # debug
+/logs/
+/data/
+/.test-data/
+/.bun-cache/
+/.bun-tmp/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
+.env
 .env*.local
+
+# isolated migration checks (the server on 3005 keeps its original dependencies)
+/.migration-validation/
 
 # vercel
 .vercel
